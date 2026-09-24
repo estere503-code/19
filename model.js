@@ -108,7 +108,7 @@ export const opexBreakdown = [
   { label: "Sales salaries", value: 86400 }, { label: "Delivery team", value: 30000 }, { label: "Administration", value: 24000 },
   { label: "Employer payroll", value: 35100 }, { label: "Marketing", value: 53500 }, { label: "Rent & utilities", value: 21600 },
   { label: "Software", value: 5400 }, { label: "Accounting & legal", value: 7200 }, { label: "Insurance", value: 1800 },
-  { label: "Admin travel", value: 4200 }, { label: "Depreciation", value: 9600 }, { label: "Interest", value: 3000 }, { label: "Other", value: 4200 },
+  { label: "Admin travel", value: 4200 }, { label: "Depreciation", value: 9600 }, { label: "Interest", value: 3000 }, { label: "Other", value: 3200 },
 ];
 
 export function sum(values) { return values.reduce((total, value) => total + (Number.isFinite(value) ? value : 0), 0); }
