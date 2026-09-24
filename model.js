@@ -74,6 +74,69 @@ export const programRegister = [
   ["Dec", "Standard corporate", 1, 20, 2500, 1125, 1375], ["Dec", "Standard corporate", 2, 20, 5000, 2700, 2300],
 ];
 
+// Existing-plan expected case: a transparent evidence bridge built only from supplied
+// historical activity, the documented staffing ramp, the existing marketing calendar
+// and the programme economics already used by the register. It does not add a Part 2 action.
+export const existingPlanEvidence = {
+  priorYearMarketingSpend: [6000, 5000, 6500, 6500, 5000, 4000, 2500, 3500, 7500, 8000, 6500, 4500],
+  currentMarketingSpend: [5500, 5000, 5000, 4500, 4000, 3500, 2000, 3000, 5500, 6000, 5000, 3500],
+  qualifiedCorporateLeads: [24, 20, 27, 29, 23, 18, 10, 15, 34, 38, 30, 20],
+  corporateDealsWon: [5, 4, 5, 6, 4, 4, 2, 3, 7, 8, 6, 4],
+  openProgramEnquiries: [65, 58, 72, 80, 69, 54, 28, 43, 96, 110, 82, 60],
+  openSeatsSold: [15, 18, 16, 22, 19, 12, 4, 8, 24, 27, 18, 15],
+  priorYearCorporateRevenue: [37000, 40000, 37500, 50000, 32500, 22500, 12500, 27500, 47500, 49500, 30000, 30000],
+  priorYearOpenRevenue: [7500, 10500, 8000, 13500, 10500, 6500, 2500, 5500, 13000, 15500, 10000, 8500],
+  repeatReferralShare: 0.75,
+  marketingLeadShare: 0.25,
+  salesCycleMonths: 2,
+  source: "02 Historical Results and Draft P&L Budget.xlsx · 02 Prior Year Sales; 03 Prior Year Marketing; 05 Draft Sales Budget; 07 Draft Operating Costs; 03 Sales Director Plan; 06 HR and Personnel Plan",
+};
+
+const registeredCorporate = programRegister.filter((row) => row[1] !== "Open");
+const registeredOpen = programRegister.filter((row) => row[1] === "Open");
+const historicCorporateWinRate = sum(existingPlanEvidence.corporateDealsWon) / sum(existingPlanEvidence.qualifiedCorporateLeads);
+const historicCorporateRevenuePerWin = sum(existingPlanEvidence.priorYearCorporateRevenue) / sum(existingPlanEvidence.corporateDealsWon);
+const historicOpenSeatRate = sum(existingPlanEvidence.openSeatsSold) / sum(existingPlanEvidence.openProgramEnquiries);
+const historicOpenRevenuePerSeat = sum(existingPlanEvidence.priorYearOpenRevenue) / sum(existingPlanEvidence.openSeatsSold);
+const registeredCorporateCostRate = sum(registeredCorporate.map((row) => row[5])) / sum(registeredCorporate.map((row) => row[4]));
+const registeredOpenCostRate = sum(registeredOpen.map((row) => row[5])) / sum(registeredOpen.map((row) => row[4]));
+const registeredCorporateDaysPerWin = sum(registeredCorporate.map((row) => row[2])) / registeredCorporate.length;
+const registeredOpenSeatsPerEvent = sum(registeredOpen.map((row) => row[3])) / registeredOpen.length;
+const registeredOpenDaysPerEvent = sum(registeredOpen.map((row) => row[2])) / registeredOpen.length;
+
+export function buildExistingPlanExpectedCase(floorPnl) {
+  const seniorCapacity = { Jan: 12, Feb: 12, Mar: 12, Apr: 12, May: 12, Jun: 12, Jul: 6, Aug: 8, Sep: 14, Oct: 14, Nov: 12, Dec: 12 };
+  const staffFactor = [1, 1, 0.75, 0.75, 0.75, 0.833333, 0.916667, 1, 1, 1, 1, 1];
+  const rows = MONTHS.map((month, index) => {
+    const spendRatio = existingPlanEvidence.currentMarketingSpend[index] / existingPlanEvidence.priorYearMarketingSpend[index];
+    const leadIndex = index - existingPlanEvidence.salesCycleMonths;
+    const leadMonth = leadIndex >= 0 ? MONTHS[leadIndex] : "Prior-year pipeline";
+    const marketingLeads = leadIndex >= 0 ? existingPlanEvidence.qualifiedCorporateLeads[leadIndex] * (existingPlanEvidence.currentMarketingSpend[leadIndex] / existingPlanEvidence.priorYearMarketingSpend[leadIndex]) * staffFactor[leadIndex] : 0;
+    const repeatWins = existingPlanEvidence.corporateDealsWon[index] * existingPlanEvidence.repeatReferralShare * staffFactor[index];
+    const marketingWins = marketingLeads * historicCorporateWinRate * existingPlanEvidence.marketingLeadShare;
+    const expectedWins = repeatWins + marketingWins;
+    const expectedCorporateRevenue = expectedWins * historicCorporateRevenuePerWin;
+    const expectedOpenEnquiries = existingPlanEvidence.openProgramEnquiries[index] * spendRatio;
+    const expectedOpenSeats = expectedOpenEnquiries * historicOpenSeatRate;
+    const expectedOpenRevenue = expectedOpenSeats * historicOpenRevenuePerSeat;
+    const rawRevenue = expectedCorporateRevenue + expectedOpenRevenue;
+    const incrementalRevenue = Math.max(0, rawRevenue - floorPnl.revenue[index]);
+    const mixCostRate = rawRevenue ? ((expectedCorporateRevenue * registeredCorporateCostRate) + (expectedOpenRevenue * registeredOpenCostRate)) / rawRevenue : 0;
+    const incrementalDirect = -incrementalRevenue * mixCostRate;
+    const trainerDays = expectedWins * registeredCorporateDaysPerWin + (expectedOpenSeats / registeredOpenSeatsPerEvent) * registeredOpenDaysPerEvent;
+    const assistantDays = 0;
+    const roomEvents = Math.ceil(expectedOpenSeats / registeredOpenSeatsPerEvent);
+    const trainerCapacity = seniorCapacity[month];
+    return { month, spendRatio, leadMonth, marketingLeads, repeatWins, marketingWins, expectedWins, expectedCorporateRevenue, expectedOpenEnquiries, expectedOpenSeats, expectedOpenRevenue, rawRevenue, floorRevenue: floorPnl.revenue[index], incrementalRevenue, incrementalDirect, trainerDays, assistantDays, roomEvents, trainerCapacity, trainerCapacityStatus: trainerDays <= trainerCapacity ? "Within senior capacity" : "External trainer / date review required", roomCapacityStatus: expectedOpenSeats <= roomEvents * 20 ? "Within 20-seat room rule" : "Room/date review required" };
+  });
+  const expected = calculatePnl({ revenue: floorPnl.revenue.map((value, index) => value + rows[index].incrementalRevenue), direct: floorPnl.direct.map((value, index) => value + rows[index].incrementalDirect), opex: floorPnl.opex });
+  return { rows, pnl: expected, assumptions: { historicCorporateWinRate, historicCorporateRevenuePerWin, historicOpenSeatRate, historicOpenRevenuePerSeat, registeredCorporateCostRate, registeredOpenCostRate, registeredCorporateDaysPerWin, registeredOpenSeatsPerEvent, registeredOpenDaysPerEvent, source: existingPlanEvidence.source } };
+}
+
+export function buildExpectedPart2(expectedP1, approvedDecisions = []) {
+  return calculatePnl({ revenue: addSeries(expectedP1.revenue, approvedDecisions.map((item) => item.revenueDelta || blankSeries())), direct: addSeries(expectedP1.direct, approvedDecisions.map((item) => item.directDelta || blankSeries())), opex: addSeries(expectedP1.opex, approvedDecisions.map((item) => item.opexDelta || blankSeries())) });
+}
+
 export const sources = [
   { id: "brief", title: "00 Start Here Budget Review Assignment.docx", detail: "Part 1 and Part 2 rules; keep original evidence unchanged." },
   { id: "background", title: "01 Company Background and Management Targets.docx", detail: "Prices, delivery rules, open-program catalogue and board requirements." },
