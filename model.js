@@ -10,6 +10,43 @@ export const priorYear = {
   revenue: [44500, 50500, 45500, 63500, 43000, 29000, 15000, 33000, 60500, 65500, 40000, 38500],
 };
 
+export const fixedCostAssumptions = {
+  salesBaseMonthly: 1800,
+  salesHeadcount: [4, 4, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4],
+  deliveryCoordinationMonthly: 2500,
+  administrationMonthly: 2000,
+  employerCostRate: 0.25,
+  rentUtilitiesMonthly: 1800,
+  softwareMonthly: 450,
+  accountingLegalMonthly: 600,
+  adminTravelMonthly: 350,
+  otherMonthly: 350,
+  interestMonthly: 250,
+  insuranceAnnual: 1800,
+  existingDepreciationMonthly: 800,
+  fitoutCost: 25000,
+  fitoutUsefulLifeMonths: 60,
+};
+
+export const salesPayroll = MONTHS.map((_, index) => {
+  const fixedSalaries = fixedCostAssumptions.salesHeadcount[index] * fixedCostAssumptions.salesBaseMonthly + fixedCostAssumptions.deliveryCoordinationMonthly + fixedCostAssumptions.administrationMonthly;
+  return fixedSalaries * (1 + fixedCostAssumptions.employerCostRate);
+});
+export const payrollOpexDelta = salesPayroll.map((value, index) => -(value - (4 * fixedCostAssumptions.salesBaseMonthly + fixedCostAssumptions.deliveryCoordinationMonthly + fixedCostAssumptions.administrationMonthly) * (1 + fixedCostAssumptions.employerCostRate)));
+export const studioDepreciationMonthly = fixedCostAssumptions.fitoutCost / fixedCostAssumptions.fitoutUsefulLifeMonths;
+export const fixedOverheadAssumptions = MONTHS.map(() => ({
+  rentUtilities: fixedCostAssumptions.rentUtilitiesMonthly,
+  software: fixedCostAssumptions.softwareMonthly,
+  accountingLegal: fixedCostAssumptions.accountingLegalMonthly,
+  adminTravel: fixedCostAssumptions.adminTravelMonthly,
+  other: fixedCostAssumptions.otherMonthly,
+  interest: fixedCostAssumptions.interestMonthly,
+  insurance: fixedCostAssumptions.insuranceAnnual / 12,
+  existingDepreciation: fixedCostAssumptions.existingDepreciationMonthly,
+  fitoutDepreciation: 0,
+}));
+fixedOverheadAssumptions.forEach((item, index) => { if (index >= 4) item.fitoutDepreciation = studioDepreciationMonthly; });
+
 export const programRegister = [
   ["Jan", "Standard corporate", 2, 20, 5000, 2250, 2750], ["Jan", "Open", 1, 18, 3600, 1750, 1850],
   ["Feb", "Large corporate", 2, 60, 10200, 4860, 5340], ["Feb", "Standard corporate", 1, 18, 2500, 1095, 1405],
@@ -51,9 +88,9 @@ export const initialState = { part1: [
   { name: "Correct revenue to named programme register", owner: "Sales / Operations", category: "Revenue evidence", source: "05 Draft Sales Budget!D23:P23; 06 Draft Program Plan!J34", rationale: "The draft assigns €989,500 of delivery-month revenue, while named programmes support €170,800.", revenueDelta: [-46900, -50300, -54500, -68450, -54700, -57000, -57500, -82500, -81100, -104550, -81700, -79500], directDelta: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], opexDelta: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
   { name: "Remove Anna Power revenue after 28 February", owner: "HR / Sales", category: "Employment timing", source: "06 HR and Personnel Plan · Anna Power resignation 28 February", rationale: "Post-February Anna revenue is removed from the baseline; any recovery belongs in Part 2.", revenueDelta: [0, 0, 0, 0, 0, 0, 0, 0, -15400, 0, -5000, 0], directDelta: [0, 0, 0, 0, 0, 0, 0, 0, 7420, 0, 2500, 0], opexDelta: zero() },
   { name: "Apply Ella Fast productivity ramp", owner: "HR / Sales", category: "Ramp timing", source: "06 HR and Personnel Plan · Ella Fast onboarding and supervised ramp", rationale: "June is 25% rather than full productivity; May remains onboarding at zero.", revenueDelta: [0, 0, 0, 0, 0, -3750, 0, 0, 0, 0, 0, 0], directDelta: zero(), opexDelta: zero() },
-  { name: "Apply external instructor rate increase", owner: "Finance / Operations", category: "Direct cost", source: "07 Finance and Administration Notes · Supplier rates; 06 Draft Program Plan!K7:M32", rationale: "The supplier rate rises 10% from 1 July; the register still uses €700 per day.", revenueDelta: zero(), directDelta: [0, 0, 0, 0, 0, 0, -70, -210, -280, -367.5, -280, -210], opexDelta: zero() },
+  { name: "Apply external instructor rate increase", owner: "Finance / Operations", category: "Direct cost", source: "07 Finance and Administration Notes · Supplier rates; 06 Draft Program Plan!K7:M32", rationale: "The supplier rate rises 10% from 1 July; assistants also use one quarter of the current-period rate.", revenueDelta: zero(), directDelta: [0, 0, 0, 0, 0, 0, -70, -210, -385, -367.5, -350, -210], opexDelta: zero() },
   { name: "Add training-studio depreciation", owner: "Finance", category: "Operating expense", source: "07 Finance and Administration Notes · Supplier rates and operating costs", rationale: "The €25,000 fit-out is ready 1 May and depreciates over five years.", revenueDelta: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], directDelta: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], opexDelta: [0, 0, 0, -0, -416.67, -416.67, -416.67, -416.67, -416.67, -416.67, -416.67, -416.67] },
-  { name: "Correct sales payroll for Anna exit and Ella start", owner: "HR / Finance", category: "Timing", source: "06 HR and Personnel Plan · Person status; 07 Draft Operating Costs!D7:O10", rationale: "Anna leaves 28 February and Ella starts 1 May, so March and April have three active sales employees.", revenueDelta: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], directDelta: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], opexDelta: [0, 0, 2250, 2250, 0, 0, 0, 0, 0, 0, 0, 0] },
+  { name: "Correct sales payroll for Anna exit and Ella start", owner: "HR / Finance", category: "Timing", source: "06 HR and Personnel Plan · Person status; 07 Draft Operating Costs!D7:O10", rationale: "Anna leaves 28 February and Ella starts 1 May, so March and April have three active sales employees; the delta is formula-derived from €1,800 base pay plus 25% employer cost.", revenueDelta: zero(), directDelta: zero(), opexDelta: payrollOpexDelta },
 ], decisions: strategyDecisions };
 
 export const opexBreakdown = [
@@ -93,7 +130,7 @@ export function buildFromDraft(corrections = [], approvedDecisions = []) {
 
 export function priceProgram(type, days, participants, seatPrice = 0) {
   if (type === "Open") return participants * seatPrice;
-  if (type === "Large corporate") return (2500 + Math.ceil(Math.max(0, participants - 20) / 10) * 650) * days;
+  if (type === "Large corporate") { const cappedParticipants = Math.min(Math.max(0, participants), 100); return (2500 + Math.ceil(Math.max(0, cappedParticipants - 20) / 10) * 650) * days; }
   return 2500 * days;
 }
 
@@ -115,6 +152,26 @@ export function capacityChecks(events = programRegister) {
     openSeats[month] += type === "Open" ? participants : 0;
   });
   return MONTHS.map((month) => ({ month, days: days[month], capacity: senior[month], trainerOver: days[month] > senior[month], assistantDays: assistants[month], assistantOver: assistants[month] > 4, openSeats: openSeats[month], openOver: openSeats[month] > 20 }));
+}
+
+export function feasibilityChecks(decisions = strategyDecisions, events = programRegister) {
+  const capacity = capacityChecks(events);
+  return decisions.map((decision) => {
+    const index = monthIndex(decision.startMonth);
+    const month = capacity[index] || { month: decision.startMonth, capacity: 0, days: 0, assistantDays: 0, openSeats: 0 };
+    const salesTiming = decision.action.includes("Anna") ? index >= 5 : true;
+    const conversionDiscipline = decision.action.includes("marketing") ? !decision.revenueDelta?.some((value) => value > 0) : true;
+    const requestedDays = Number(decision.deliveryDays || 0);
+    const requestedAssistants = decision.programType === "Large corporate" ? Math.max(0, Math.ceil(Number(decision.participants || 0) / 30) - 1) * requestedDays : 0;
+    const roomOk = decision.programType !== "Open" || Number(decision.participants || 0) <= 20;
+    const seniorOk = month.days + requestedDays <= month.capacity || requestedDays === 0;
+    const assistantOk = month.assistantDays + requestedAssistants <= 4 || requestedAssistants === 0;
+    return { action: decision.action, month: decision.startMonth, pass: salesTiming && conversionDiscipline && roomOk && seniorOk && assistantOk, salesTiming, conversionDiscipline, roomOk, seniorOk, assistantOk, detail: [!salesTiming && "Anna recovery starts before the eight-week handover", !conversionDiscipline && "Marketing decision books uplift without a stated ramp", !roomOk && "Open programme exceeds 20 paid seats", !seniorOk && "Senior instructor capacity exceeded", !assistantOk && "Regular assistant capacity exceeded"].filter(Boolean) };
+  });
+}
+
+export function revenueTimingChecks(events = programRegister) {
+  return events.map(([month, type, days, participants, revenue]) => ({ month, type, days, participants, revenue, status: "Assumption", detail: "The named delivery register supports delivery-month recognition; qualifying-conversation dates were not supplied, so no earlier pipeline timing is invented." }));
 }
 
 export function validateDecision(item) {
