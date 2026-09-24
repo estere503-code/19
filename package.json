@@ -3,5 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "scripts": {"build": "node scripts/build-static.mjs", "test": "node scripts/test-domain.mjs", "dev": "node scripts/static-server.mjs"}
+  "scripts": {
+    "build": "node build-static.mjs",
+    "test": "node test-domain.mjs",
+    "dev": "node static-server.mjs"
+  }
 }
